@@ -5,20 +5,70 @@
     <title>WebSocket Example</title>
 </head>
 <body>
+    <form id="message_form">
+        <input type="text" id="message_input" placeholder="type something here" />
+        <button type="submit" id="message_submit">Send</button>
+    </form>
+
+    <ul id="response_list">
+    </ul>
+
     <script>
-        const ws = new WebSocket('ws://localhost:8080/ws');
+        var ws;
+        var wsReady = false;
 
-        ws.onopen = function(event) {
-            console.log('WebSocket connected.');
-            ws.send('Hello, Server!');
+        var messageForm = document.getElementById('message_form');
+        var responseList = document.getElementById('response_list');
+
+        function handleWebSocketOnOpen() {
+            wsReady = true;
+
+            console.log('websocket connection is open');
         };
 
-        ws.onmessage = function(event) {
-            console.log('Received message:', event.data);
+        function handleWebSocketOnMessage(e) {
+            var li = document.createElement("li");
+            li.innerText = e.data;
+
+            if (responseList) {
+                responseList.appendChild(li);
+            }
         };
 
-        ws.onclose = function(event) {
-            console.log('WebSocket connection closed.');
+        function handleWebSocketOnClose() {
+            wsReady = false;
+            ws = undefined;
+
+            console.log('websocket connection is closed');
+        };
+
+        function handleMessageFormSubmit(e) {
+            e.preventDefault();
+
+            if (ws && wsReady) {
+                ws.send(e.target[0].value);
+            }
+
+            e.target[0].value = '';
+        };
+
+        <!-- on load connect the websocket -->
+        window.onload = function() {
+            ws = new WebSocket('ws://localhost:8080/ws');
+            ws.onopen = handleWebSocketOnOpen
+            ws.onmessage = handleWebSocketOnMessage
+            ws.onclose = handleWebSocketOnClose
+
+            if (messageForm) {
+                messageForm.onsubmit = handleMessageFormSubmit;
+            }
+        };
+
+        <!-- on before unload close the websocket -->
+        window.onbeforeunload = function() {
+            if (ws && wsReady) {
+                ws.close(1000, "webpage unloading");
+            }
         };
     </script>
 </body>
